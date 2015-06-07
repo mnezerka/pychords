@@ -1,3 +1,5 @@
+# https://bitbucket.org/holms/chordpro/
+
 import getopt
 import re
 import string
