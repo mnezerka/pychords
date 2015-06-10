@@ -1,5 +1,5 @@
 from xml.etree.ElementTree import ElementTree, Element, SubElement, Comment
-from xml.etree.ElementTree import _ElementInterface as ElementBase
+#from xml.etree.ElementTree import _ElementInterface as ElementBase
 from xml.etree.ElementTree import tostring as dumpElement
 
 ####        ####
@@ -50,8 +50,8 @@ def pop_to_object(s, t):
 def isElement(o):
     'Test wether "o" is an ElementTree.Element'
     # TODO: is there a better way to detect Element?
-    return o.__class__ is ElementBase
-
+    #return o.__class__ is ElementBase
+    return isinstance(o, Element)
 
 def isComment(o):
     'Test wether "o" is an ElementTree.Comment'
@@ -73,17 +73,17 @@ def parse(tokens):
             # offload large if/else tree to directive_handler()
             directive_handler(tokens, stack, lineno, ttype, tvalue)
         elif ttype == 'comment':
-            stack.append( Comment(tvalue) )
+            stack.append(Comment(tvalue))
         elif ttype == 'chord':
             # always maintain a chord:lyric pairing on the stack
-            stack.append( Element('cho', {'c':tvalue.strip()}) )
+            stack.append(Element('cho', {'c':tvalue.strip()}))
             stack[-1].text = ''
         elif ttype == 'lyric':
             # if a lyric appears before a chord, assume a blank chord
             tvalue = tvalue.lstrip()
             if tvalue:
                 if not isElement(stack[-1]) or stack[-1].tag != 'cho':
-                    stack.append( Element('cho', {'c':''}) )
+                    stack.append(Element('cho', {'c':''}) )
                     stack[-1].text = ''
                 stack[-1].text = stack[-1].text + tvalue
         elif ttype == 'sof':
@@ -98,8 +98,7 @@ def parse(tokens):
             #   stack to the document
             eol_handler(tokens, stack, lineno, ttype, tvalue)
         else:
-            raise BadFormattingError, 'Unrecognized token %r (%r) at line %d' \
-                                                      % (ttype, tvalue, lineno)
+            raise BadFormattingError('Unrecognized token %r (%r) at line %d' % (ttype, tvalue, lineno))
     
     # time to stuff metadata into the document's <head> tag
     meta = stack[0]
@@ -179,50 +178,36 @@ def directive_handler(tokens, stack, lineno, ttype, tvalue):
     tag = tag.lower()
     
     if tag in ('t', 'title'):
-        if not arg: raise BadDirectiveError, \
-                              '{%s} directive needs an argument at line %s' % \
-                                                                  (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         set_meta(stack, 'title', arg)
     
     elif tag in ('st', 'subtitle'):
-        if not arg: raise BadDirectiveError, \
-                              '{%s} directive needs an argument at line %s' % \
-                                                                  (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         set_meta(stack, 'subtitle', arg)
     
     elif tag == 'define':
-        if not arg: raise BadDirectiveError, \
-                              '{%s} directive needs an argument at line %s' % \
-                                                                  (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         append_meta(stack, 'define', arg)
     
     elif tag in ('c', 'comment'):
-        if not arg: raise BadDirectiveError, \
-                              '{%s} directive needs an argument at line %s' % \
-                                                                  (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         c = Element('comment')
         c.text = arg
         stack[1].append( c )
     
     elif tag in ('ci', 'comment_italic'):
-        if not arg: raise BadDirectiveError, \
-                              '{%s} directive needs an argument at line %s' % \
-                                                                  (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         stack.append( Element('comment', {'italic':'true'}) )
         stack[-1].text = arg
     
     elif tag in ('cb', 'comment_box'):
-        if not arg: raise BadDirectiveError, \
-                              '{%s} directive needs an argument at line %s' % \
-                                                                  (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         stack.append( Element('comment', {'box':'true'}) )
         stack[-1].text = arg
     
     elif tag in ('soc', 'start_of_chorus'):
         # close the current verse, if any, then start a chorus
-        if arg: raise BadDirectiveError, \
-                           '{%s} directive needs no argument %r at line %d' % \
-                                                             (tag, arg, lineno)
+        if arg: raise BadDirectiveError('{%s} directive needs no argument %r at line %d' % (tag, arg, lineno))
         pop_to_object(stack, LineBegin)
         verse = pop_to_object(stack, VerseBegin)
         if verse:
@@ -235,9 +220,7 @@ def directive_handler(tokens, stack, lineno, ttype, tvalue):
     elif tag in ('eoc', 'end_of_chorus'):
         # close the current chorus, but don't start a verse
         # - that's done after an sol token
-        if arg: raise BadDirectiveError, \
-                           '{%s} directive needs no argument %r at line %d' % \
-                                                             (tag, arg, lineno)
+        if arg: raise BadDirectiveError('{%s} directive needs no argument %r at line %d' % (tag, arg, lineno))
         pop_to_object(stack, LineBegin)
         c = Element('chorus')
         stack[1].append( c )
@@ -246,8 +229,7 @@ def directive_handler(tokens, stack, lineno, ttype, tvalue):
             c.append(e)
     
     elif tag == 'tab':
-        if not arg: raise BadDirectiveError, \
-                  '{%s} directive needs an argument at line %s' % (tag, lineno)
+        if not arg: raise BadDirectiveError('{%s} directive needs an argument at line %s' % (tag, lineno))
         t = Element('tab')
         t.text = arg
         stack[1].append( t )
@@ -265,6 +247,5 @@ def directive_handler(tokens, stack, lineno, ttype, tvalue):
         # TODO: - chordfont, chordsize
         # TODO: - ng, no_grid
         # TODO: - g, grid
-        raise NotFinishedError, 'Unimplemented directive {%s} at line %d' % \
-                                                                  (tag, lineno)
+        raise NotFinishedError('Unimplemented directive {%s} at line %d' (tag, lineno))
 

@@ -1,6 +1,9 @@
-import urllib
+#import urllib
 import xml.sax.saxutils
-
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfbase import pdfmetrics
 
 def safeText(s, html=False):
     'Sanitizes text from unknown 3rd parties during rendering'
@@ -71,26 +74,14 @@ def renderToAscii(document,
                     # use wrapper list "rows" so we can overflow line-wraps
                     rows = [
                         [
-                            [
-                                safeText(cho.attrib.get('c', '')) + ' ' 
-                                for cho 
-                                in line
-                            ],
-                            [
-                                safeText(cho.text) if cho.text else '... ' 
-                                for cho 
-                                in line
-                            ]
+                            [safeText(cho.attrib.get('c', '')) + ' ' for cho in line],
+                            [safeText(cho.text) if cho.text else '... ' for cho in line]
                         ]
                     ]
+
                     # get each column's max width
-                    widths = [
-                        map(max, zip(
-                            *[[len(ii) for ii in i] for i in row]
-                        ))
-                        for row
-                        in rows
-                    ]
+                    widths = [map(max, zip( *[[len(item) for item in subrow] for subrow in row])) for row in rows]
+                     
                     # commence line-wrapping
                     for r, row in enumerate(rows):
                         for i, row_widths in enumerate(widths):
@@ -109,25 +100,16 @@ def renderToAscii(document,
                                     rows[r+1][0].insert(1, rows[r][0].pop())
                                     rows[r+1][1].insert(1, rows[r][1].pop())
                                     widths[r+1].insert(1, widths[r].pop())
+
                     # each column gets template string based on width
-                    templates = [
-                        ['%%-%ds' % i for i in row_widths]
-                        for row_widths 
-                        in widths
-                    ]
+                    templates = [['%%-%ds' % i for i in row_widths] for row_widths in widths]
+
                     for r in range(len(rows)):
                         # yield the chord names row
-                        yield indent + ''.join([
-                            t % i
-                            for (t, i) 
-                            in zip(templates[r], rows[r][0])
-                        ])
+                        yield indent + ''.join([t % i for (t, i) in zip(templates[r], rows[r][0])])
+
                         # yield the lyrics row
-                        yield indent + ''.join([
-                            t % i 
-                            for (t, i) 
-                            in zip(templates[r], rows[r][1])
-                        ])
+                        yield indent + ''.join([ t % i for (t, i) in zip(templates[r], rows[r][1])])
                 
                 elif line.tag == 'comment':
                     # TODO: implement me - italics, box
@@ -357,3 +339,74 @@ def renderToHtmlCss(document,
     yield '</body>'
     
     yield '</html>'
+
+def renderToPDF(document):
+    '''
+    Renders a chordpro document into PDF file.
+    '''
+    root = document.getroot()
+    head = root.find('head')
+    body = root.find('body')
+
+    c = canvas.Canvas('song.pdf', bottomup = 0, pagesize=A4)
+    pageWidth, pageHeight = A4
+
+    fontName = 'Helvetica'
+    fontSize = 8
+
+    face = pdfmetrics.getFont(fontName).face
+    ascent = (face.ascent * fontSize) / 1000.0
+    descent = (face.descent * fontSize) / 1000.0
+
+    height = ascent - descent # <-- descent it's negative
+
+    #draw a box 10 wide and "height" tall
+    #canv.rect(50,600 - descent,10,height) # <--to keep the baseline at 600
+
+    #Write the string next to the box, it should be the exact same height
+    #canv.setFont(fontname, fontsize) # <-- fix the size of your output text
+    #canv.drawString(62,600,'Testing')
+
+    posX = 30
+    posY = 30
+
+    # render title and subtitle, widely spaced if possible
+    if head.find('title') != None:
+        title = safeText(head.find('title').text).strip()
+        #print (stringWidth(title, 'Helvetica', 10))
+        c.drawString(30, posY, title)
+        posY += 10
+
+    if head.find('subtitle') != None:
+
+        subtitle = safeText(head.find('subtitle').text).strip()
+        c.drawString(30, posY, title)
+        posY += 10
+
+    # render each block (verse, chorus, tab, comment)
+    for block in body:
+        if block.tag in ('verse', 'chorus'):
+            for line in block:
+                print(line.tag)
+
+                if line.tag == 'row':
+                    # split the row into a two-row table:
+                    #   top row is chord names, padded on right with one space
+                    #   bottom row is lyrics, use ... if no textual content
+                    # use wrapper list "rows" so we can overflow line-wraps
+                    rows = [
+                        [safeText(cho.attrib.get('c', '')) for cho in line],
+                        [safeText(cho.text) if cho.text else '... ' for cho in line]
+                    ]
+
+                    print(rows)
+
+                    # get each column's max width
+                    widths = [map(max, zip( *[[len(item) for item in subrow] for subrow in row])) for row in rows]
+
+                    print(widths)
+                else:
+                    print('todo')
+
+    c.showPage()
+    c.save()

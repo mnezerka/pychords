@@ -5,21 +5,25 @@ import re
 import string
 import sys
 
-from pychords import *
+import pychords.tokenizer 
+import pychords.parser 
+import pychords.render
  
 def parse_input(filename, format, smallgrid):
     chordfile = open(filename)
-    tokens = tokenize(chordfile)
-    document = parse(tokens)
+    tokens = pychords.tokenizer.tokenize(chordfile)
+    document = pychords.parser.parse(tokens)
 
     if format=='text' :
-        for line in renderToAscii(document, smallgrid=smallgrid):
+        for line in pychords.render.renderToAscii(document, smallgrid=smallgrid):
             print (line)
     elif format=='html' :
-        for line in renderToHtmlTables(document):
+        for line in pychords.render.renderToHtmlTables(document):
             print (line)
+    elif format=='pdf':
+        pychords.render.renderToPDF(document)
     elif format=='html_css' :
-        for line in renderToHtmlCss(document):
+        for line in pychords.render.renderToHtmlCss(document):
             print (line)
     
 def usage():
@@ -35,8 +39,8 @@ def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "f:s:h", ["format=", "smallgrid=", "help"])
         assert args
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         sys.exit(2)
     except AssertionError:
         usage()
@@ -48,7 +52,7 @@ def main():
     # Check shell params
     for o, a in opts:
         if   o in ("-f", "--format"):
-            format = (a in ['text', 'html', 'html_css'] and a) or format
+            format = (a in ['text', 'html', 'html_css', 'pdf'] and a) or format
         elif o in ("-s", "--smallgrid"):
             if(a): smallgrid = True
         elif o in ("-h", "--help"):

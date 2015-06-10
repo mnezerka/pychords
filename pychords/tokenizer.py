@@ -1,7 +1,7 @@
 import re
 
 from xml.etree.ElementTree import ElementTree, Element, SubElement, Comment
-from xml.etree.ElementTree import _ElementInterface as ElementBase
+#from xml.etree.ElementTree import _ElementInterface as ElementBase
 from xml.etree.ElementTree import tostring as dumpElement
 
 def tokenize(infile):
@@ -27,16 +27,12 @@ def tokenize(infile):
     'sol', 'eol': start of line, end of line
     '''
     
-    tokentypes = (
-        'directive', 
-        'chord',
-        'comment',
-        'lyric',
-    )
+    tokentypes = ('directive', 'chord', 'comment', 'lyric')
     
     # pattern.findall(line) returns tuples of form 
     #   (directive, chord, comment, lyric)
     #   where only one is not an empty string
+
     pattern = re.compile(r'''
         \s* \{ ( [^}]+ ) \} # directive (meta or block)
     |
@@ -56,22 +52,15 @@ def tokenize(infile):
         
         line = line.rstrip()
         for tokens in pattern.findall(line):
-            (ttype, tvalue) = [
-                t
-                for t 
-                in zip(tokentypes, tokens) 
-                if t[1] != ''
-            ][0]
+            (ttype, tvalue) = [t for t in zip(tokentypes, tokens) if t[1] != ''][0]
             if ttype == 'directive' and tvalue in ('sot', 'start_of_tab'):
-                tvalue = preformatted_tokenize(lines, 
-                                               r'^\s*\{(eot|end_of_tab)\}\s*$')
+                tvalue = preformatted_tokenize(lines, r'^\s*\{(eot|end_of_tab)\}\s*$')
                 tvalue = 'tab:' + ''.join([v[1] for v in tvalue])
-            yield (lineno+1, ttype, tvalue)
+            yield (lineno + 1, ttype, tvalue)
         
-        yield (lineno+1, 'eol', '')
+        yield (lineno + 1, 'eol', '')
     
-    yield (lineno+1, 'eof', '')
-
+    yield (lineno + 1, 'eof', '')
 
 def preformatted_tokenize(lines, pattern):
     'Returns untokenized text from iterator "lines"'
