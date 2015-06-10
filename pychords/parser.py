@@ -6,27 +6,22 @@ from xml.etree.ElementTree import tostring as dumpElement
 #### parser ####
 ####        ####
 
-
 class BadFormattingError(RuntimeError): pass
 class BadDirectiveError(RuntimeError): pass
 class NotFinishedError(RuntimeError): pass
-
 
 class LineBegin(object): pass
 class VerseBegin(object): pass
 class TabBegin(object): pass
 class ChorusBegin(object): pass
 
-
 def set_meta(s, key, value):
     'Sets a key:value pair in the metadata at stack[0]'
     s[0][key] = value
 
-
 def append_meta(s, key, value):
     'Appends a key:value pair to a list in the metadata at stack[0]'
     s[0][key] = s[0].get(key, []) + [value]
-
 
 def pop_to_object(s, t):
     '''
@@ -46,7 +41,6 @@ def pop_to_object(s, t):
         l = []
     return l
 
-
 def isElement(o):
     'Test wether "o" is an ElementTree.Element'
     # TODO: is there a better way to detect Element?
@@ -56,7 +50,6 @@ def isElement(o):
 def isComment(o):
     'Test wether "o" is an ElementTree.Comment'
     return isElement(o) and o.tag is Comment
-
 
 def parse(tokens):
     'Returns an ElementTree-based DOM using output from tokenizer()'
@@ -115,9 +108,8 @@ def parse(tokens):
             e = Element('define')
             e.text = d
             head.append(e)
-    
-    return document
 
+    return document
 
 def eol_handler(tokens, stack, lineno, ttype, tvalue):
     '''
@@ -169,7 +161,6 @@ def eol_handler(tokens, stack, lineno, ttype, tvalue):
                     stack[1].append(e)
             
             stack.append(VerseBegin)
-
 
 def directive_handler(tokens, stack, lineno, ttype, tvalue):
     'Parser handler for all directives'
