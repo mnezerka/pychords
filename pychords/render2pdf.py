@@ -5,100 +5,122 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfbase import pdfmetrics
 
 def safeText(s, html=False):
-    'Sanitizes text from unknown 3rd parties during rendering'
-    # TODO: no, really, sanitize text please
-    if html:
-        return xml.sax.saxutils.escape(s, {' ': '&nbsp;'})
-    return s
+        'Sanitizes text from unknown 3rd parties during rendering'
+        # TODO: no, really, sanitize text please
+        if html:
+            return xml.sax.saxutils.escape(s, {' ': '&nbsp;'})
+        return s
 
-def getStringExtent(str, fontName, fontSize):
-    face = pdfmetrics.getFont(fontName).face
-    ascent = (face.ascent * fontSize) / 1000.0
-    descent = (face.descent * fontSize) / 1000.0
-    height = ascent - descent # <-- descent it's negative
-    width = stringWidth(str, fontName, fontSize)
-    return (width, height)
+class Render2Pdf:
+    def __init__(self):
+        self.cFontName = 'Helvetica' 
+        self.cFontSize = 8 
+        self.canv = canvas.Canvas('song.pdf', bottomup = 0, pagesize=A4)
+        self.pageWidth, self.pageHeight = A4
+        self.marginLeft = 40 
+        self.marginTop = 40 
+        self.offsetPara = 10
+ 
+    def getStringExtent(self, str, fontName = None, fontSize = None):
+        fontName = fontName if fontName is not None else self.cFontName
+        fontSize = fontSize if fontSize is not None else self.cFontSize
+        face = pdfmetrics.getFont(fontName).face
+        ascent = (face.ascent * fontSize) / 1000.0
+        descent = (face.descent * fontSize) / 1000.0
+        height = ascent - descent # <-- descent it's negative
+        width = stringWidth(str, fontName, fontSize)
+        return (width, height)
 
-def render(document):
-    '''
-    Renders a chordpro document into PDF file.
-    '''
-    marginLeft = 0
-    marginTop = 0
+    def setFont(self, fontName, fontSize):
+        self.cFontName = fontName
+        self.cFontSize = fontSize
+        self.canv.setFont(self.cFontName, self.cFontSize)
 
-    root = document.getroot()
-    head = root.find('head')
-    body = root.find('body')
+    def setFontSize(self, fontSize):
+        self.cFontSize = fontSize
+        self.setFont(self.cFontName, self.cFontSize)
 
-    c = canvas.Canvas('song.pdf', bottomup = 0, pagesize=A4)
-    pageWidth, pageHeight = A4
+    def drawString(self, x, y, string, fontName = None, fontSize = None):
+        fontName = fontName if fontName is not None else self.cFontName
+        fontSize = fontSize if fontSize is not None else self.cFontSize
+        box = self.getStringExtent(string, fontName, fontSize)
+        self.canv.drawString(x, y + box[1], string)
+        return box
 
-    fontName = 'Helvetica'
+    def render(self, document):
+        '''
+        Renders a chordpro document into PDF file.
+        '''
+        root = document.getroot()
+        head = root.find('head')
+        body = root.find('body')
 
-    fontTitleSize = 18 
-    fontLyricSize = 10 
-    fontChordSize = 10 
+        fontSizeTitle = 18 
+        fontSizeLyric = 10 
+        fontSizeChord = 10 
 
-    #draw a box 10 wide and "height" tall
-    #canv.rect(50,600 - descent,10,height) # <--to keep the baseline at 600
+        posY = self.marginTop 
 
-    #Write the string next to the box, it should be the exact same height
-    #canv.setFont(fontname, fontsize) # <-- fix the size of your output text
-    #canv.drawString(62,600,'Testing')
+        # render title
+        if head.find('title') != None:
+            title = safeText(head.find('title').text).strip()
+            self.setFontSize(fontSizeTitle)
+            strSize = self.drawString(self.marginLeft, posY, title)
+            posY += 30 
 
-    posY = marginTop 
+        # render subtitle
+        if head.find('subtitle') != None:
+            subtitle = safeText(head.find('subtitle').text).strip()
+            self.setFontSize(fontSizeLyric)
+            strSize = self.drawString(self.marginLeft, posY, subtitle)
+            posY += 30
 
-    # render title and subtitle, widely spaced if possible
-    if head.find('title') != None:
-        title = safeText(head.find('title').text).strip()
-        box = getStringExtent(title, fontName, fontTitleSize)
-        c.setFont(fontName, fontTitleSize)
-        #print (stringWidth(title, 'Helvetica', 10))
-        c.drawString(marginLeft, posY + box[1], title)
-        posY += 30 
+        self.setFontSize(fontSizeLyric)
 
-    if head.find('subtitle') != None:
-        c.setFont(fontName, fontLyricSize)
-        subtitle = safeText(head.find('subtitle').text).strip()
-        c.drawString(marginLeft, posY, title)
-        posY += 30
+        # render each block (verse, chorus, tab, comment)
+        for block in body:
+            if block.tag in ('verse', 'chorus'):
+                # prepare all rows of the block - each row has two lines 
+                #   top row is chord names, padded on right with one space
+                #   bottom row is lyrics, use ... if no textual content
+                blockRows = []
+                blockHasChords = False
+                for line in block:
+                     if line.tag == 'row':
+                        row = [
+                            [safeText(cho.attrib.get('c', '')) for cho in line],
+                            [safeText(cho.text) if cho.text else '... ' for cho in line]
+                        ]
+                        blockRows.append(row)
 
-    c.setFont(fontName, fontLyricSize)
+                        # look for any chord if not found already
+                        if not blockHasChords:
+                            for c in row[0]:
+                                if len(c) > 0:
+                                    blockHasChords = True
+                                    break
+                    
+                # draw paragraph
 
-    # render each block (verse, chorus, tab, comment)
-    for block in body:
-        if block.tag in ('verse', 'chorus'):
-            for line in block:
-                posX = marginLeft 
-                print(line.tag)
-
-                if line.tag == 'row':
-                    # split the row into a two-row table:
-                    #   top row is chord names, padded on right with one space
-                    #   bottom row is lyrics, use ... if no textual content
-                    # use wrapper list "rows" so we can overflow line-wraps
-                    chordRow = [safeText(cho.attrib.get('c', '')) for cho in line]
-                    textRow = [safeText(cho.text) if cho.text else '... ' for cho in line]
-
-                    for item in zip(textRow, chordRow):
-                        print(item)
-                        textBox = getStringExtent(item[0], fontName, fontLyricSize)
-                        chordBox = getStringExtent(item[1], fontName, fontChordSize)
+                # rendering of rows 
+                for row in blockRows:
+                    posX = self.marginLeft 
+                    for item in zip(row[1], row[0]):
+                        #print(item)
                         # draw chord
-                        c.drawString(posX, posY, item[1])
+                        lyricOffset = 0
+                        if blockHasChords:
+                            chordBox = self.drawString(posX, posY, item[1])
+                            lyricOffset = chordBox[1]
+
                         # draw lyrics 
-                        c.drawString(posX, posY + chordBox[1], item[0])
+                        textBox = self.drawString(posX, posY + lyricOffset, item[0])
                         posX += textBox[0]
-                    posY += textBox[1] * 3
 
-                    #for i, d in rows
+                    posY += lyricOffset + textBox[1]
+                    posY += 5 
 
-                    # get each column's max width
-                    #widths = [map(max, zip( *[[len(item) for item in subrow] for subrow in row])) for row in rows]
+                posY += self.offsetPara
 
-                    #print(widths)
-                else:
-                    print('todo')
-
-    c.showPage()
-    c.save()
+        self.canv.showPage()
+        self.canv.save()
