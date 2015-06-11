@@ -3,6 +3,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfbase import pdfmetrics
+import reportlab.rl_config
+#reportlab.rl_config.warnOnMissingFontGlyphs = 0
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 def safeText(s, html=False):
         'Sanitizes text from unknown 3rd parties during rendering'
@@ -20,6 +24,8 @@ class Render2Pdf:
         self.marginLeft = 40 
         self.marginTop = 40 
         self.offsetPara = 10
+
+        pdfmetrics.registerFont(TTFont('Helvetica', 'Helvetica.ttf'))
  
     def getStringExtent(self, str, fontName = None, fontSize = None):
         fontName = fontName if fontName is not None else self.cFontName
@@ -43,7 +49,7 @@ class Render2Pdf:
     def drawString(self, x, y, string, fontName = None, fontSize = None):
         fontName = fontName if fontName is not None else self.cFontName
         fontSize = fontSize if fontSize is not None else self.cFontSize
-        box = self.getStringExtent(string, fontName, fontSize)
+        box = self.getStringExtent(string.encode('utf-8'), fontName, fontSize)
         self.canv.drawString(x, y + box[1], string)
         return box
 
