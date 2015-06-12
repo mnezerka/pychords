@@ -16,16 +16,17 @@ def safeText(s, html=False):
         return s
 
 class Render2Pdf:
-    def __init__(self):
+    def __init__(self, fileName):
+        self.fileName = fileName
         self.cFontName = 'Helvetica' 
-        self.cFontSize = 8 
-        self.canv = canvas.Canvas('song.pdf', bottomup = 0, pagesize=A4)
+        self.cFontSize = 10 
+        self.canv = canvas.Canvas(self.fileName, bottomup = 0, pagesize=A4)
         self.pageWidth, self.pageHeight = A4
-        self.marginLeft = 40 
+        self.marginLeft = 50 
         self.marginTop = 40 
         self.offsetPara = 10
 
-        pdfmetrics.registerFont(TTFont('Helvetica', 'Helvetica.ttf'))
+        pdfmetrics.registerFont(TTFont('Helvetica', 'hv.ttf'))
  
     def getStringExtent(self, str, fontName = None, fontSize = None):
         fontName = fontName if fontName is not None else self.cFontName
@@ -61,9 +62,9 @@ class Render2Pdf:
         head = root.find('head')
         body = root.find('body')
 
-        fontSizeTitle = 18 
-        fontSizeLyric = 10 
-        fontSizeChord = 10 
+        fontSizeTitle = 20 
+        fontSizeLyric = 12 
+        fontSizeChord = 12 
 
         posY = self.marginTop 
 
@@ -95,7 +96,7 @@ class Render2Pdf:
                      if line.tag == 'row':
                         row = [
                             [safeText(cho.attrib.get('c', '')) for cho in line],
-                            [safeText(cho.text) if cho.text else '... ' for cho in line]
+                                [safeText(cho.text) if cho.text else ' ' for cho in line]
                         ]
                         blockRows.append(row)
 
@@ -114,16 +115,17 @@ class Render2Pdf:
                     for item in zip(row[1], row[0]):
                         #print(item)
                         # draw chord
-                        lyricOffset = 0
+                        lyricOffsetY = 0
+                        chordBox = (0, 0)
                         if blockHasChords:
                             chordBox = self.drawString(posX, posY, item[1])
-                            lyricOffset = chordBox[1]
+                            lyricOffsetY = chordBox[1]
 
                         # draw lyrics 
-                        textBox = self.drawString(posX, posY + lyricOffset, item[0])
-                        posX += textBox[0]
+                        textBox = self.drawString(posX, posY + lyricOffsetY, item[0])
+                        posX += max(textBox[0], chordBox[0])
 
-                    posY += lyricOffset + textBox[1]
+                    posY += lyricOffsetY + textBox[1]
                     posY += 5 
 
                 posY += self.offsetPara
