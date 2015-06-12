@@ -7,6 +7,7 @@ import reportlab.rl_config
 #reportlab.rl_config.warnOnMissingFontGlyphs = 0
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from pkg_resources import resource_filename
 
 def safeText(s, html=False):
         'Sanitizes text from unknown 3rd parties during rendering'
@@ -26,7 +27,8 @@ class Render2Pdf:
         self.marginTop = 40 
         self.offsetPara = 10
 
-        pdfmetrics.registerFont(TTFont('Helvetica', 'hv.ttf'))
+        hvFont = resource_filename(__name__, 'fonts/hv.ttf')
+        pdfmetrics.registerFont(TTFont('Helvetica', hvFont))
  
     def getStringExtent(self, str, fontName = None, fontSize = None):
         fontName = fontName if fontName is not None else self.cFontName
