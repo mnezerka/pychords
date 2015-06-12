@@ -16,6 +16,14 @@ def safeText(s, html=False):
             return xml.sax.saxutils.escape(s, {' ': '&nbsp;'})
         return s
 
+class StyleSheet:
+    '''Visual definition of song typesetting'''
+    def __init__(self):
+        self.fontLyrics = ('Helvetica', 10)
+        self.fontChords = ('Helvetica', 8)
+        self.fontTitle = ('Helvetica', 20)
+        self.fontSubTitle = ('Helvetica', 12)
+
 class Render2Pdf:
     def __init__(self, fileName):
         self.fileName = fileName
@@ -26,10 +34,14 @@ class Render2Pdf:
         self.marginLeft = 50 
         self.marginTop = 40 
         self.offsetPara = 10
+        self.style = StyleSheet()
 
         hvFont = resource_filename(__name__, 'fonts/hv.ttf')
         pdfmetrics.registerFont(TTFont('Helvetica', hvFont))
- 
+
+        hvObliqueFont = resource_filename(__name__, 'fonts/hv-oblique.ttf')
+        pdfmetrics.registerFont(TTFont('HelveticaOblique', hvObliqueFont))
+
     def getStringExtent(self, str, fontName = None, fontSize = None):
         fontName = fontName if fontName is not None else self.cFontName
         fontSize = fontSize if fontSize is not None else self.cFontSize
@@ -40,14 +52,12 @@ class Render2Pdf:
         width = stringWidth(str, fontName, fontSize)
         return (width, height)
 
-    def setFont(self, fontName, fontSize):
-        self.cFontName = fontName
-        self.cFontSize = fontSize
-        self.canv.setFont(self.cFontName, self.cFontSize)
-
-    def setFontSize(self, fontSize):
-        self.cFontSize = fontSize
-        self.setFont(self.cFontName, self.cFontSize)
+    def setFont(self, font):
+        self.cFont= font
+        try:
+            self.canv.setFont(self.cFont[0], self.cFont[1])
+        except:
+            pass
 
     def drawString(self, x, y, string, fontName = None, fontSize = None):
         fontName = fontName if fontName is not None else self.cFontName
@@ -64,27 +74,23 @@ class Render2Pdf:
         head = root.find('head')
         body = root.find('body')
 
-        fontSizeTitle = 20 
-        fontSizeLyric = 12 
-        fontSizeChord = 12 
-
         posY = self.marginTop 
 
         # render title
         if head.find('title') != None:
             title = safeText(head.find('title').text).strip()
-            self.setFontSize(fontSizeTitle)
+            self.setFont(self.style.fontTitle)
             strSize = self.drawString(self.marginLeft, posY, title)
             posY += 30 
 
         # render subtitle
         if head.find('subtitle') != None:
             subtitle = safeText(head.find('subtitle').text).strip()
-            self.setFontSize(fontSizeLyric)
+            self.setFont(self.style.fontSubTitle)
             strSize = self.drawString(self.marginLeft, posY, subtitle)
             posY += 30
 
-        self.setFontSize(fontSizeLyric)
+        self.setFont(self.style.fontLyrics)
 
         # render each block (verse, chorus, tab, comment)
         for block in body:
@@ -98,7 +104,7 @@ class Render2Pdf:
                      if line.tag == 'row':
                         row = [
                             [safeText(cho.attrib.get('c', '')) for cho in line],
-                                [safeText(cho.text) if cho.text else ' ' for cho in line]
+                            [safeText(cho.text) if cho.text else ' ' for cho in line]
                         ]
                         blockRows.append(row)
 
@@ -120,10 +126,12 @@ class Render2Pdf:
                         lyricOffsetY = 0
                         chordBox = (0, 0)
                         if blockHasChords:
+                            self.setFont(self.style.fontChords)
                             chordBox = self.drawString(posX, posY, item[1])
                             lyricOffsetY = chordBox[1]
 
                         # draw lyrics 
+                        self.setFont(self.style.fontLyrics)
                         textBox = self.drawString(posX, posY + lyricOffsetY, item[0])
                         posX += max(textBox[0], chordBox[0])
 
@@ -133,4 +141,7 @@ class Render2Pdf:
                 posY += self.offsetPara
 
         self.canv.showPage()
+
         self.canv.save()
+
+

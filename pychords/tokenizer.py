@@ -48,7 +48,6 @@ def tokenize(infile):
     lines = iter(enumerate(infile.readlines()))
     
     for lineno, line in lines:
-        print(repr(line))
         yield (lineno+1, 'sol', '')
         
         line = line.rstrip()
