@@ -7,7 +7,7 @@ setup(
     url = 'https://github.com/mnezerka/pychords',
     author='Michal Nezerka',
     author_email='michal.nezerka@gmail.com',
-    licence = 'MIT',
+    license = 'MIT',
     keywords = 'chordpro',
     packages = find_packages(),
     install_requires = ['reportlab'],
@@ -23,5 +23,7 @@ setup(
     entry_points = {
         'console_scripts': [ 'pychords=pychords.main:main']
     },
-    include_package_data = True,
+    package_data = {
+        'pychords': ['fonts/*ttf']
+    }
 )
