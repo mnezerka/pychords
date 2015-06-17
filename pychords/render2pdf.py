@@ -1,10 +1,11 @@
+import json
+import os
 import xml.sax.saxutils
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfbase import pdfmetrics
 import reportlab.rl_config
-#reportlab.rl_config.warnOnMissingFontGlyphs = 0
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from pkg_resources import resource_filename
@@ -19,13 +20,39 @@ def safeText(s, html=False):
 class StyleSheet:
     '''Visual definition of song typesetting'''
     def __init__(self):
+        # Default values
         self.fontLyrics = ('Helvetica', 10)
         self.fontChords = ('Helvetica', 8)
         self.fontTitle = ('Helvetica', 20)
         self.fontSubTitle = ('Helvetica', 12)
 
+    def loadFromFile(self, filePath): 
+        '''Load stylesheet from file system'''
+        # first - try to open file as provided (cwd without full path)
+        if not os.path.isfile(filePath):
+            # second - try to open file from home directory 
+            filePath = os.path.expanduser("~/" + os.path.basename(filePath))
+
+        if not os.path.isfile(filePath):
+            raise IOError('Stylesheet file not found: %s' % filePath)
+
+        with open(filePath) as dataFile:    
+            data = json.load(dataFile)
+            dataFile.close()
+            if data['pdf']:
+                dataPdf = data['pdf']
+                if dataPdf['title'] and len(dataPdf['title']) >= 2:
+                    self.fontTitle = (dataPdf['title'][0], dataPdf['title'][1])
+                if dataPdf['subtitle'] and len(dataPdf['subtitle']) >= 2:
+                    self.fontSubTitle = (dataPdf['subtitle'][0], dataPdf['subtitle'][1])
+                if dataPdf['lyrics'] and len(dataPdf['lyrics']) >= 2:
+                    self.fontLyrics = (dataPdf['lyrics'][0], dataPdf['lyrics'][1])
+                if dataPdf['chords'] and len(dataPdf['chords']) >= 2:
+                    self.fontChords = (dataPdf['chords'][0], dataPdf['chords'][1])
+
+
 class Render2Pdf:
-    def __init__(self, fileName):
+    def __init__(self, fileName, styleSheet):
         self.fileName = fileName
         self.cFontName = 'Helvetica' 
         self.cFontSize = 10 
@@ -34,7 +61,7 @@ class Render2Pdf:
         self.marginLeft = 50 
         self.marginTop = 40 
         self.offsetPara = 10
-        self.style = StyleSheet()
+        self.style = styleSheet
 
         hvFont = resource_filename(__name__, 'fonts/hv.ttf')
         pdfmetrics.registerFont(TTFont('Helvetica', hvFont))
