@@ -50,7 +50,6 @@ class StyleSheet:
                 if dataPdf['chords'] and len(dataPdf['chords']) >= 2:
                     self.fontChords = (dataPdf['chords'][0], dataPdf['chords'][1])
 
-
 class Render2Pdf:
     def __init__(self, fileName, styleSheet):
         self.fileName = fileName
@@ -93,81 +92,85 @@ class Render2Pdf:
         self.canv.drawString(x, y + box[1], string)
         return box
 
-    def render(self, document):
+    def render(self, documents):
         '''
-        Renders a chordpro document into PDF file.
+        Renders a chordpro documents into PDF file.
         '''
-        root = document.getroot()
-        head = root.find('head')
-        body = root.find('body')
 
-        posY = self.marginTop 
+        print('Rendering PDF output to', self.fileName)
 
-        # render title
-        if head.find('title') != None:
-            title = safeText(head.find('title').text).strip()
-            self.setFont(self.style.fontTitle)
-            strSize = self.drawString(self.marginLeft, posY, title)
-            posY += 30 
+        for document in documents:
+            root = document.getroot()
+            head = root.find('head')
+            body = root.find('body')
 
-        # render subtitle
-        if head.find('subtitle') != None:
-            subtitle = safeText(head.find('subtitle').text).strip()
-            self.setFont(self.style.fontSubTitle)
-            strSize = self.drawString(self.marginLeft, posY, subtitle)
-            posY += 30
+            posY = self.marginTop 
 
-        self.setFont(self.style.fontLyrics)
+            # render title
+            if head.find('title') != None:
+                title = safeText(head.find('title').text).strip()
+                self.setFont(self.style.fontTitle)
+                strSize = self.drawString(self.marginLeft, posY, title)
+                posY += 30 
 
-        # render each block (verse, chorus, tab, comment)
-        for block in body:
-            if block.tag in ('verse', 'chorus'):
-                # prepare all rows of the block - each row has two lines 
-                #   top row is chord names, padded on right with one space
-                #   bottom row is lyrics, use ... if no textual content
-                blockRows = []
-                blockHasChords = False
-                for line in block:
-                     if line.tag == 'row':
-                        row = [
-                            [safeText(cho.attrib.get('c', '')) for cho in line],
-                            [safeText(cho.text) if cho.text else ' ' for cho in line]
-                        ]
-                        blockRows.append(row)
+            # render subtitle
+            if head.find('subtitle') != None:
+                subtitle = safeText(head.find('subtitle').text).strip()
+                self.setFont(self.style.fontSubTitle)
+                strSize = self.drawString(self.marginLeft, posY, subtitle)
+                posY += 30
 
-                        # look for any chord if not found already
-                        if not blockHasChords:
-                            for c in row[0]:
-                                if len(c) > 0:
-                                    blockHasChords = True
-                                    break
-                    
-                # draw paragraph
+            self.setFont(self.style.fontLyrics)
 
-                # rendering of rows 
-                for row in blockRows:
-                    posX = self.marginLeft 
-                    for item in zip(row[1], row[0]):
-                        #print(item)
-                        # draw chord
-                        lyricOffsetY = 0
-                        chordBox = (0, 0)
-                        if blockHasChords:
-                            self.setFont(self.style.fontChords)
-                            chordBox = self.drawString(posX, posY, item[1])
-                            lyricOffsetY = chordBox[1]
+            # render each block (verse, chorus, tab, comment)
+            for block in body:
+                if block.tag in ('verse', 'chorus'):
+                    # prepare all rows of the block - each row has two lines 
+                    #   top row is chord names, padded on right with one space
+                    #   bottom row is lyrics, use ... if no textual content
+                    blockRows = []
+                    blockHasChords = False
+                    for line in block:
+                         if line.tag == 'row':
+                            row = [
+                                [safeText(cho.attrib.get('c', '')) for cho in line],
+                                [safeText(cho.text) if cho.text else ' ' for cho in line]
+                            ]
+                            blockRows.append(row)
 
-                        # draw lyrics 
-                        self.setFont(self.style.fontLyrics)
-                        textBox = self.drawString(posX, posY + lyricOffsetY, item[0])
-                        posX += max(textBox[0], chordBox[0])
+                            # look for any chord if not found already
+                            if not blockHasChords:
+                                for c in row[0]:
+                                    if len(c) > 0:
+                                        blockHasChords = True
+                                        break
+                        
+                    # draw paragraph
 
-                    posY += lyricOffsetY + textBox[1]
-                    posY += 5 
+                    # rendering of rows 
+                    for row in blockRows:
+                        posX = self.marginLeft 
+                        for item in zip(row[1], row[0]):
+                            #print(item)
+                            # draw chord
+                            lyricOffsetY = 0
+                            chordBox = (0, 0)
+                            if blockHasChords:
+                                self.setFont(self.style.fontChords)
+                                chordBox = self.drawString(posX, posY, item[1])
+                                lyricOffsetY = chordBox[1]
 
-                posY += self.offsetPara
+                            # draw lyrics 
+                            self.setFont(self.style.fontLyrics)
+                            textBox = self.drawString(posX, posY + lyricOffsetY, item[0])
+                            posX += max(textBox[0], chordBox[0])
 
-        self.canv.showPage()
+                        posY += lyricOffsetY + textBox[1]
+                        posY += 5 
+
+                    posY += self.offsetPara
+
+            self.canv.showPage()
 
         self.canv.save()
 

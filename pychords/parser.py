@@ -238,5 +238,8 @@ def directive_handler(tokens, stack, lineno, ttype, tvalue):
         # TODO: - chordfont, chordsize
         # TODO: - ng, no_grid
         # TODO: - g, grid
-        raise NotFinishedError('Unimplemented directive {%s} at line %d' (tag, lineno))
+        raise NotFinishedError('Unimplemented directive %s at line %d' % (tag, lineno))
+
+
+
 

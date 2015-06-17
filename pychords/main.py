@@ -30,16 +30,17 @@ def parseInput(filename, styleSheet, format):
             print (line)
     
 def main():
-    parser = argparse.ArgumentParser(
-        description='Tool for processing song lyrics stored in ChordPro formatted files')
-    parser.add_argument('files', help='chordpro files to be processed', nargs='+', metavar='file')
-    parser.add_argument('-f', choices=['text', 'html', 'html_css', 'pdf'], help='Output format', default='text')
-    parser.add_argument('-s', help='Style sheet file')
-    args = parser.parse_args()
-    
-    output = None
-    verbose = False
+    """Main for command line interface"""
 
+    argParser = argparse.ArgumentParser(
+        description='Tool for processing song lyrics stored in ChordPro formatted files')
+    argParser.add_argument('files', help='chordpro files to be processed', nargs='+', metavar='file')
+    argParser.add_argument('-f', choices=['text', 'html', 'html_css', 'pdf'], help='Output format', default='text')
+    argParser.add_argument('-s', help='Style sheet file')
+    argParser.add_argument('-n', help='Output name (name of the output file)')
+    args = argParser.parse_args()
+    
+    # check arguments - format
     if args.f not in ['text', 'html', 'html_css', 'pdf']:
         sys.stderr.write('Unsupported format %s\n' % str(args.f))
         sys.exit(1)
@@ -49,7 +50,42 @@ def main():
     if args.s:
         styleSheet.loadFromFile(args.s)
 
-    # Pass params to chordpro class
+    # generate output name
+    outputName = None
+    if args.n:
+        outputName = args.n    
+    # if no name is specified, take name of the first file
+    elif len(args.files) > 0:
+        (root, ext) = os.path.splitext(os.path.basename(args.files[0]))
+        outputName = root
+    else:
+        sys.stderr.write('No files to be processed')
+        sys.exit(1)
+
+    # parse all files 
+    documents = []
     for f in args.files:
-        parseInput(f, styleSheet, args.f)
+        print('Processing "%s"' % f)
+        chordfile = codecs.open(f, 'r', 'utf-8-sig')
+        try:
+            tokens = tokenizer.tokenize(chordfile)
+            document = parser.parse(tokens)
+            documents.append(document)
+        except parser.NotFinishedError as e:
+            print(f, e)
+         
+    # render all documents
+    if args.f == 'text' :
+        for line in render.renderToAscii(documents):
+            print (line)
+    elif args.f == 'html' :
+        for line in render.renderToHtmlTables(documents):
+            print (line)
+    elif args.f == 'pdf':
+        fileNameOutput = outputName + '.pdf'
+        render = render2pdf.Render2Pdf(fileNameOutput, styleSheet)
+        render.render(documents)
+    elif args.f == 'html_css' :
+        for line in render.renderToHtmlCss(documents):
+            print (line)
 
