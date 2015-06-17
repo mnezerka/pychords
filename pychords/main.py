@@ -9,26 +9,6 @@ import codecs
 
 from . import tokenizer, parser, render, render2pdf
  
-def parseInput(filename, styleSheet, format):
-    (root, ext) = os.path.splitext(filename)
-    chordfile = codecs.open(filename, 'r', 'utf-8-sig')
-    tokens = tokenizer.tokenize(chordfile)
-    document = parser.parse(tokens)
-
-    if format=='text' :
-        for line in render.renderToAscii(document):
-            print (line)
-    elif format=='html' :
-        for line in render.renderToHtmlTables(document):
-            print (line)
-    elif format=='pdf':
-        fileNameOutput = root + '.pdf'
-        render = render2pdf.Render2Pdf(fileNameOutput, styleSheet)
-        render.render(document)
-    elif format=='html_css' :
-        for line in render.renderToHtmlCss(document):
-            print (line)
-    
 def main():
     """Main for command line interface"""
 

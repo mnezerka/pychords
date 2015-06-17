@@ -99,7 +99,7 @@ class Render2Pdf:
 
         print('Rendering PDF output to', self.fileName)
 
-        for document in documents:
+        for documentIx, document in enumerate(documents):
             root = document.getroot()
             head = root.find('head')
             body = root.find('body')
@@ -109,6 +109,11 @@ class Render2Pdf:
             # render title
             if head.find('title') != None:
                 title = safeText(head.find('title').text).strip()
+                # create pdf outline item
+                bookmarkKey = 'song-%d' % documentIx 
+                self.canv.bookmarkPage(bookmarkKey)
+                self.canv.addOutlineEntry(title, bookmarkKey, 0, 0)
+                # render title
                 self.setFont(self.style.fontTitle)
                 strSize = self.drawString(self.marginLeft, posY, title)
                 posY += 30 
