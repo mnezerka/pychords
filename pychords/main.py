@@ -18,6 +18,7 @@ def main():
     argParser.add_argument('-f', choices=['text', 'html', 'html_css', 'pdf'], help='Output format', default='text')
     argParser.add_argument('-s', help='Style sheet file')
     argParser.add_argument('-n', help='Output name (name of the output file)')
+    argParser.add_argument('-o', choices=['none', 'title', 'file'], help='Order before rendering', default='none')
     args = argParser.parse_args()
     
     # check arguments - format
@@ -53,6 +54,10 @@ def main():
             documents.append(document)
         except parser.NotFinishedError as e:
             print(f, e)
+
+    # order before rendering
+    if args.o == 'title':
+        pass
          
     # render all documents
     if args.f == 'text' :
