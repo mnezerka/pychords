@@ -10,6 +10,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from pkg_resources import resource_filename
 
+
 def safeText(s, html=False):
         'Sanitizes text from unknown 3rd parties during rendering'
         # TODO: no, really, sanitize text please

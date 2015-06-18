@@ -8,7 +8,14 @@ import sys
 import codecs
 
 from . import tokenizer, parser, render, render2pdf
- 
+
+def getDocumentTitle(d):
+    head = d.find('head')
+    title = head.find('title')
+    if title != None:
+        return title.text.strip()
+    return "" 
+     
 def main():
     """Main for command line interface"""
 
@@ -46,7 +53,7 @@ def main():
     # parse all files 
     documents = []
     for f in args.files:
-        print('Processing "%s"' % f)
+        print('Reading "%s"' % f)
         chordfile = codecs.open(f, 'r', 'utf-8-sig')
         try:
             tokens = tokenizer.tokenize(chordfile)
@@ -57,9 +64,12 @@ def main():
 
     # order before rendering
     if args.o == 'title':
-        pass
+        # order all documents according to title
+        print('Sorting songs according to title')
+        documents.sort(key = lambda d: getDocumentTitle(d))
          
     # render all documents
+    print('Rendering to', args.f)
     if args.f == 'text' :
         for line in render.renderToAscii(documents):
             print (line)
